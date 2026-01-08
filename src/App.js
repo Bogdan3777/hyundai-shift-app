@@ -3,12 +3,12 @@ import Calendar from 'react-calendar';
 import { motion } from 'framer-motion';
 import 'react-calendar/dist/Calendar.css';
 
-const baseDate = new Date('2026-01-05');
+const baseDate = new Date('2026-01-05'); // понеділок
 const chiefs = ["Tono", "Boris", "Stano"];
 const shifts = [
-  { name: "Ranná", time: "06:00 – 14:00", color: "#4CAF50" },
-  { name: "Nočná", time: "22:00 – 06:00", color: "#FF5722" },
-  { name: "Denná", time: "14:00 – 22:00", color: "#2196F3" }
+  { name: "Ранкова", time: "06:00 – 14:00", color: "#4CAF50" },
+  { name: "Нічна", time: "22:00 – 06:00", color: "#FF5722" },
+  { name: "Денна", time: "14:00 – 22:00", color: "#2196F3" }
 ];
 
 const translations = {
@@ -21,7 +21,6 @@ const translations = {
     greeting5: "Готовий подивитися, яка зміна чекає на тебе цього разу?",
     greeting6: "Тримай календар — працюймо разом! ⚙️",
     currentShift: "Поточна бригада:",
-    calendarHint: "Обери дату в календарі",
     rest: "Відпочинь добре 😊",
     reminders: "Нагадування про зміну",
     language: "Мова:",
@@ -37,7 +36,6 @@ const translations = {
     greeting5: "Pripravený pozrieť sa, aká zmena ťa čaká tentokrát?",
     greeting6: "Tu máš kalendár — pracujme spolu! ⚙️",
     currentShift: "Aktuálna brigáda:",
-    calendarHint: "Vyber dátum v kalendári",
     rest: "Dobre si oddychuj 😊",
     reminders: "Pripomienky zmeny",
     language: "Jazyk:",
@@ -48,7 +46,7 @@ const translations = {
 
 function isWeekend(date) {
   const day = date.getDay();
-  return day === 0 || day === 6; // неділя і субота — вихідні
+  return day === 0 || day === 6; // неділя (0) і субота (6) — вихідні
 }
 
 function getShift(date, chiefIndex, lang = 'uk') {
@@ -57,8 +55,11 @@ function getShift(date, chiefIndex, lang = 'uk') {
     return { name: restText, time: "", color: "#757575" };
   }
 
-  const daysPassed = Math.floor((date - baseDate) / (86400000));
-  const shiftIndex = (Math.floor(daysPassed / 7) + chiefIndex) % 3;
+  // Правильний розрахунок кількості тижнів від baseDate (понеділок)
+  const timeDiff = date.getTime() - baseDate.getTime();
+  const daysPassed = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+  const weeksPassed = Math.floor(daysPassed / 7);
+  const shiftIndex = (weeksPassed + chiefIndex) % 3;
 
   const shiftNames = lang === 'uk' 
     ? ["Ранкова", "Нічна", "Денна"] 
@@ -78,7 +79,7 @@ function App() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedChiefIndex, setSelectedChiefIndex] = useState(0);
   const [username, setUsername] = useState("");
-  const [language, setLanguage] = useState('uk'); // uk або sk
+  const [language, setLanguage] = useState('uk');
 
   const t = translations[language];
 
@@ -92,7 +93,6 @@ function App() {
         const name = user.username || user.first_name || (language === 'uk' ? "друже" : "kamarát");
         setUsername(name);
 
-        // Автовизначення бригади по імені
         const index = chiefs.findIndex(chief => 
           name.toLowerCase().includes(chief.toLowerCase()) ||
           chief.toLowerCase().includes(name.toLowerCase())
@@ -101,13 +101,12 @@ function App() {
           setSelectedChiefIndex(index);
         }
 
-        // Автовизначення мови (якщо ім'я звучить словацьки)
         if (user.language_code === 'sk' || name.toLowerCase().includes('stano') || name.toLowerCase().includes('boris')) {
           setLanguage('sk');
         }
       }
     }
-  }, []);
+  }, [language]);
 
   const currentChief = chiefs[selectedChiefIndex];
   const shift = getShift(selectedDate, selectedChiefIndex, language);
@@ -122,7 +121,7 @@ function App() {
         {t.title}
       </motion.h1>
 
-      {/* Персоналізоване привітання — Варіант 3 */}
+      {/* Персоналізоване привітання */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -194,13 +193,19 @@ function App() {
         </select>
       </motion.div>
 
-      {/* Календар */}
+      {/* Календар — тиждень починається з понеділка */}
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.6 }}
       >
-        <Calendar onChange={setSelectedDate} value={selectedDate} locale={language === 'uk' ? "uk-UA" : "sk-SK"} />
+        <Calendar 
+          onChange={setSelectedDate} 
+          value={selectedDate} 
+          locale={language === 'uk' ? "uk-UA" : "sk-SK"}
+          // Критично: тиждень починається з понеділка
+          firstDayOfWeek={1}
+        />
       </motion.div>
 
       {/* Зміна на вибрану дату */}
